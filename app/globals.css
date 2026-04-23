@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0a;
+  --color-surface: #111111;
+  --color-surface-2: #1a1a1a;
+  --color-border: #242424;
+  --color-accent: #d4820a;
+  --color-accent-hover: #e8970c;
+  --color-text: #f0f0f0;
+  --color-muted: #7a7a7a;
+  --color-glass: rgba(10, 10, 10, 0.88);
+
+  /* Control Panel — distinct palette */
+  --color-cp-bg: #0d0f14;
+  --color-cp-surface: #12151c;
+  --color-cp-border: #1e2433;
+  --color-cp-accent: #6366f1;
+  --color-cp-accent-hover: #4f46e5;
+  --color-cp-text: #e8eaf0;
+  --color-cp-muted: #64748b;
+
+  --font-sans: var(--font-space-grotesk), system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  height: 100%;
+  background-color: #0a0a0a;
+  color: #f0f0f0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+/* Scroll indicator cascade animation */
+@keyframes scroll-cascade {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.65; }
+}
+
+/* Now playing equalizer bars */
+@keyframes eq-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50% { transform: scaleY(1); }
+}
+
+/* Page / section entrance */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* Utility classes */
+.animate-fade-up {
+  animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease both;
+}
+.animate-slide-up {
+  animation: slide-up 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-backdrop {
+  animation: fade-in 0.25s ease both;
+}
+
+/* Control Panel — override body styles within cp-root */
+.cp-root {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* Control Panel button utilities */
+.cp-btn-ghost {
+  @apply font-semibold uppercase tracking-wider text-cp-muted hover:text-cp-text transition-colors px-2.5 py-1.5 rounded-md hover:bg-cp-border inline-block;
+}
+.cp-btn-outline {
+  @apply font-semibold uppercase tracking-wider text-cp-accent/70 hover:text-cp-accent transition-colors px-2.5 py-1.5 rounded-md border border-cp-accent/25 hover:border-cp-accent/50 inline-block;
+}
+.cp-btn-danger {
+  @apply font-semibold uppercase tracking-wider text-red-400/50 hover:text-red-400 transition-colors px-2.5 py-1.5 rounded-md border border-red-400/15 hover:border-red-400/40 inline-block;
+}
+
+/* Minimal scrollbar */
+::-webkit-scrollbar {
+  width: 3px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 2px;
+}
