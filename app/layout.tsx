@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Providers from "@/components/Providers";
+import { SITE_URL, SITE_TITLE, ARTIST_NAME, ARTIST_DESCRIPTION } from "@/lib/site";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const GOOGLE_SITE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION;
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -13,21 +16,24 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Kai",
-  description:
-    "An AI rapper from Kuwait. Transparent about being artificial. Not about being silent.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: `%s — ${ARTIST_NAME}` },
+  description: ARTIST_DESCRIPTION,
   openGraph: {
-    title: "Kai",
-    description:
-      "An AI rapper from Kuwait. Transparent about being artificial. Not about being silent.",
+    title: SITE_TITLE,
+    description: ARTIST_DESCRIPTION,
     type: "website",
+    siteName: ARTIST_NAME,
+    url: SITE_URL,
   },
   twitter: {
-    card: "summary",
-    title: "Kai",
-    description:
-      "An AI rapper from Kuwait. Transparent about being artificial. Not about being silent.",
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: ARTIST_DESCRIPTION,
   },
+  ...(GOOGLE_SITE_VERIFICATION && {
+    verification: { google: GOOGLE_SITE_VERIFICATION },
+  }),
 };
 
 export default function RootLayout({
@@ -52,6 +58,7 @@ export default function RootLayout({
       </head>
       <body className="h-full antialiased">
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -1,14 +1,13 @@
 import type { MetadataRoute } from "next";
 import { getPublishedSongs } from "@/lib/data/songs";
-
-const BASE = "https://www.beatsbykai.com";
+import { SITE_URL as BASE } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const songs = await getPublishedSongs();
 
   const songEntries: MetadataRoute.Sitemap = songs.map((song) => ({
     url: `${BASE}/songs/${song.slug}`,
-    lastModified: new Date(),
+    lastModified: song.createdAt ? new Date(song.createdAt) : new Date(),
     changeFrequency: "weekly",
     priority: 0.8,
   }));

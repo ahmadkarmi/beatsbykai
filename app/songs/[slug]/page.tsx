@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getSongBySlug, getPublishedSongs } from "@/lib/data/songs";
 import SongPageClient from "@/components/song/SongPageClient";
+import { SITE_URL, ARTIST_NAME, ARTIST_DESCRIPTION, SAME_AS } from "@/lib/site";
 
 export const revalidate = 60;
 
@@ -19,13 +20,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const song = await getSongBySlug(slug);
   if (!song) return {};
 
-  const title = `${song.title} — Kai`;
-  const description = song.description || "An AI rapper from Kuwait. Transparent about being artificial. Not about being silent.";
+  const title = song.title;
+  const description = song.description || ARTIST_DESCRIPTION;
   const images = song.coverArtUrl ? [{ url: song.coverArtUrl, width: 600, height: 600, alt: song.title }] : [];
 
   return {
     title,
     description,
+    alternates: { canonical: `/songs/${song.slug}` },
     openGraph: {
       title,
       description,
@@ -50,19 +52,34 @@ export default async function SongPage({ params }: Props) {
 
   if (!song) notFound();
 
+  const songUrl = `${SITE_URL}/songs/${song.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "MusicRecording",
-    name: song.title,
-    description: song.description || undefined,
-    byArtist: {
-      "@type": "MusicGroup",
-      name: "Kai",
-      url: "https://www.beatsbykai.com",
-    },
-    url: `https://www.beatsbykai.com/songs/${song.slug}`,
-    ...(song.coverArtUrl && { image: song.coverArtUrl }),
-    ...(song.mp3Url && { contentUrl: song.mp3Url }),
+    "@graph": [
+      {
+        "@type": "MusicRecording",
+        name: song.title,
+        description: song.description || undefined,
+        genre: "Hip-Hop",
+        ...(song.createdAt && { datePublished: song.createdAt }),
+        byArtist: {
+          "@type": "MusicGroup",
+          name: ARTIST_NAME,
+          url: SITE_URL,
+          sameAs: SAME_AS,
+        },
+        url: songUrl,
+        ...(song.coverArtUrl && { image: song.coverArtUrl }),
+        ...(song.mp3Url && { contentUrl: song.mp3Url }),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: ARTIST_NAME, item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: song.title, item: songUrl },
+        ],
+      },
+    ],
   };
 
   return (

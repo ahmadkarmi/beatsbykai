@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import AboutAccordion from "./AboutAccordion";
 
 export const metadata: Metadata = {
-  title: "About Kai",
+  title: "About",
   description:
     "A voice from Kuwait. Opinions, perspectives, and music from a region the world rarely lets speak for itself.",
+  alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {
