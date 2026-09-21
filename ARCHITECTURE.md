@@ -1,4 +1,33 @@
-# Kai Web App — Architecture
+# Kai — Architecture
+
+## Repo layout
+
+npm workspaces. The web app is one workspace among several so the Expo mobile
+app can share code with it rather than duplicating it.
+
+```
+listentokai/
+  apps/web/          the Next.js site  (Vercel Root Directory = apps/web)
+  packages/core/     shared runtime, TypeScript source, no build step
+  docs/ CLAUDE.md ARCHITECTURE.md PRD.md
+```
+
+`@beatsbykai/core` holds everything both platforms need: the `Song` model,
+the Worker client, brand tokens, tag logic, date normalisation, the analytics
+taxonomy, the pure player logic and the `PlayerEngine` interface. It ships as
+`.ts` with `"main": "src/index.ts"` — Next transpiles it via
+`transpilePackages`, Metro will compile it natively. No build step, no
+published artifact, no version skew.
+
+Deliberately **not** in core: `lib/jsonld.ts` (SEO only), `lib/safe-equal.ts`
+and `lib/admin/*` (web admin only), and `lib/labels.ts` — Tailwind can only
+emit classes it finds as literal strings, so the class names must live in the
+web app even though `core`'s `LABEL_COLORS` describes the same palette for
+mobile.
+
+`npm test` runs vitest against `packages/core`. The player's decision logic
+lives in `player/logic.ts` as pure functions precisely so it can be tested
+without a browser or a device.
 
 ## Stack
 
@@ -132,7 +161,7 @@ Public app. Every file below is a client component; the server components are
 the route files under `app/`.
 
 ```
-/components
+apps/web/components/
   Providers.tsx              client root — wraps the app in PlayerProvider and
                              renders the persistent shell (see order below)
   /player
@@ -160,7 +189,7 @@ the route files under `app/`.
     NavigationProgress  (79) top progress bar driven by pathname changes.
     PageTransition.tsx  (12) fade-in keyed on pathname.
 
-/app/controlpanel/_components     admin only — behind the proxy.ts auth gate
+apps/web/app/controlpanel/_components   admin only — behind the proxy.ts auth gate
   SongForm.tsx         (384) create / edit, with direct-to-Worker file upload
   ReorderList.tsx      (126) drag ordering + publish toggle
   LoginForm.tsx         (52)

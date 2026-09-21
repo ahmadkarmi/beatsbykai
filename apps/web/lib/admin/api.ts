@@ -9,7 +9,7 @@ function adminHeaders(extra?: Record<string, string>) {
   };
 }
 
-import type { SongLabel } from "@/lib/types";
+import type { SongLabel } from "@beatsbykai/core";
 
 export type AdminSong = {
   id: string;

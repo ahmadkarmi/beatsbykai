@@ -2,7 +2,7 @@
 
 import { useState, useRef, KeyboardEvent } from "react";
 import type { AdminSong } from "@/lib/admin/api";
-import type { SongLabel } from "@/lib/types";
+import type { SongLabel } from "@beatsbykai/core";
 
 const ALL_LABELS: { value: SongLabel; color: string; bg: string }[] = [
   { value: "new",      color: "text-emerald-400", bg: "bg-emerald-500/15 border-emerald-500/30" },

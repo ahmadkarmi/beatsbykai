@@ -8,7 +8,7 @@ import {
   ARTIST_NAME,
   ARTIST_DESCRIPTION,
   SAME_AS,
-} from "@/lib/site";
+} from "@beatsbykai/core";
 
 export const metadata: Metadata = {
   title: { absolute: `${SITE_TITLE} | beatsbykai` },

@@ -3,7 +3,7 @@ import { Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Providers from "@/components/Providers";
-import { SITE_URL, SITE_TITLE, ARTIST_NAME, ARTIST_DESCRIPTION } from "@/lib/site";
+import { SITE_URL, SITE_TITLE, ARTIST_NAME, ARTIST_DESCRIPTION } from "@beatsbykai/core";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const GOOGLE_SITE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION;

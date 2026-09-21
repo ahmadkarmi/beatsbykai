@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import type { SongLabel } from "@/lib/types";
+import type { SongLabel } from "@beatsbykai/core";
 import { safeEqual } from "@/lib/safe-equal";
 import { requireAdmin } from "./guard";
 import { ADMIN_COOKIE, SESSION_TTL_MS, createSessionToken } from "./session";

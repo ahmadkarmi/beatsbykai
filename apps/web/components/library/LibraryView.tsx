@@ -5,14 +5,8 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerContext";
-import { Song } from "@/lib/types";
-import type { SongLabel } from "@/lib/types";
-
-const LABEL_STYLES: Record<SongLabel, string> = {
-  new:      "bg-emerald-500/20 text-emerald-400",
-  trending: "bg-amber-500/20  text-amber-400",
-  featured: "bg-violet-500/20 text-violet-400",
-};
+import { Song } from "@beatsbykai/core";
+import { LABEL_STYLES } from "@/lib/labels";
 
 export default function LibraryView({ songs }: { songs: Song[] }) {
   const { setQueue, isPlaying } = usePlayer();

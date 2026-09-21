@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerContext";
-import { Song } from "@/lib/types";
+import { Song } from "@beatsbykai/core";
 import { trackSongPageView, trackSectionToggled } from "@/lib/analytics";
-import { tagSlug } from "@/lib/tags";
+import { tagSlug } from "@beatsbykai/core";
 import ShareButton from "@/components/song/ShareButton";
 import LyricsSheet, {
   SectionBody,
@@ -25,13 +25,7 @@ import {
   RepeatOneIcon,
   ShuffleIcon,
 } from "@/components/song/icons";
-import type { SongLabel } from "@/lib/types";
-
-const LABEL_STYLES: Record<SongLabel, string> = {
-  new:      "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25",
-  trending: "bg-amber-500/15  text-amber-400  border border-amber-500/25",
-  featured: "bg-violet-500/15 text-violet-400 border border-violet-500/25",
-};
+import { LABEL_STYLES } from "@/lib/labels";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";

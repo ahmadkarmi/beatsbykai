@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getPublishedSongs } from "@/lib/data/songs";
-import { SITE_URL as BASE } from "@/lib/site";
-import { collectTags, isIndexableTag } from "@/lib/tags";
-import { parseSongDate } from "@/lib/dates";
+import { SITE_URL as BASE } from "@beatsbykai/core";
+import { collectTags, isIndexableTag } from "@beatsbykai/core";
+import { parseSongDate } from "@beatsbykai/core";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const songs = await getPublishedSongs();

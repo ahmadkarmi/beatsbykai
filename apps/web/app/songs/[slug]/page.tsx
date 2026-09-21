@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getSongBySlug, getPublishedSongs } from "@/lib/data/songs";
 import SongPageClient from "@/components/song/SongPageClient";
-import { SITE_URL, ARTIST_NAME, ARTIST_DESCRIPTION, SAME_AS } from "@/lib/site";
+import { SITE_URL, ARTIST_NAME, ARTIST_DESCRIPTION, SAME_AS } from "@beatsbykai/core";
 import { jsonLd as jsonLdScript } from "@/lib/jsonld";
-import { toIsoDate } from "@/lib/dates";
+import { toIsoDate } from "@beatsbykai/core";
 
 export const revalidate = 60;
 

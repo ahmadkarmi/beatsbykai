@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getSongBySlug } from "@/lib/data/songs";
-import { ARTIST_NAME, ARTIST_DESCRIPTION } from "@/lib/site";
+import { ARTIST_NAME, ARTIST_DESCRIPTION } from "@beatsbykai/core";
 
 export const runtime = "nodejs";
 export const revalidate = 60;

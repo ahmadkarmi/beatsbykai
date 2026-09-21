@@ -1,4 +1,4 @@
-import type { Song } from "@/lib/types";
+import type { Song } from "./types";
 
 // Tags arrive from the Worker "#"-prefixed and free-form ("#war", "#orwell").
 // URLs use a bare, lowercased slug.

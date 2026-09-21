@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL } from "@beatsbykai/core";
 import { trackSongShared } from "@/lib/analytics";
 
 const COPIED_RESET_MS = 2000;

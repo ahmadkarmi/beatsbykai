@@ -1,32 +1,11 @@
-import { Song } from "@/lib/types";
+import { createSongsClient } from "@beatsbykai/core";
 
-const WORKER_URL = process.env.WORKER_URL;
+// Web binding for the shared Worker client. Next's fetch extensions are
+// passed through `init` so @beatsbykai/core stays framework-free.
+const client = createSongsClient({
+  baseUrl: process.env.WORKER_URL,
+  init: { next: { revalidate: 60 } } as RequestInit,
+});
 
-// Falls back to null if Worker is not configured or times out
-async function fetchFromWorker<T>(path: string): Promise<T | null> {
-  if (!WORKER_URL) return null;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
-  try {
-    const res = await fetch(`${WORKER_URL}${path}`, {
-      next: { revalidate: 60 },
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    return res.json() as Promise<T>;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-export async function getPublishedSongs(): Promise<Song[]> {
-  const songs = await fetchFromWorker<Song[]>("/songs");
-  return songs ?? [];
-}
-
-export async function getSongBySlug(slug: string): Promise<Song | undefined> {
-  const song = await fetchFromWorker<Song>(`/songs/${slug}`);
-  return song ?? undefined;
-}
+export const getPublishedSongs = client.getPublishedSongs;
+export const getSongBySlug = client.getSongBySlug;

@@ -2,10 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getPublishedSongs } from "@/lib/data/songs";
-import { collectTags, isIndexableTag, songsForTag, tagLabel } from "@/lib/tags";
+import { collectTags, isIndexableTag, songsForTag, tagLabel } from "@beatsbykai/core";
 import { jsonLd as jsonLdScript } from "@/lib/jsonld";
 import SongRow from "@/components/song/SongRow";
-import { SITE_URL, ARTIST_NAME } from "@/lib/site";
+import { SITE_URL, ARTIST_NAME } from "@beatsbykai/core";
 
 export const revalidate = 60;
 

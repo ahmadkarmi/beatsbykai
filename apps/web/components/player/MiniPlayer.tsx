@@ -3,14 +3,8 @@
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerContext";
-import type { SongLabel } from "@/lib/types";
 import { trackMiniPlayerTap } from "@/lib/analytics";
-
-const LABEL_STYLES: Record<SongLabel, string> = {
-  new:      "bg-emerald-500/20 text-emerald-400",
-  trending: "bg-amber-500/20  text-amber-400",
-  featured: "bg-violet-500/20 text-violet-400",
-};
+import { LABEL_STYLES } from "@/lib/labels";
 
 export default function MiniPlayer() {
   const { currentSong, isPlaying, progress, pause, resume } = usePlayer();

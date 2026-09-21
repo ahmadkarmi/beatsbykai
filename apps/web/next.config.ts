@@ -46,6 +46,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Workspace package shipped as TypeScript source, no build step.
+  transpilePackages: ["@beatsbykai/core"],
   images: {
     remotePatterns: [
       {

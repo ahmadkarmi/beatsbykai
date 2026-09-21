@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Song, RepeatMode } from "@/lib/types";
+import { Song, RepeatMode } from "@beatsbykai/core";
 import {
   trackSongComplete,
   trackSongPlay,

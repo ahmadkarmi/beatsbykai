@@ -3,16 +3,11 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerContext";
-import type { Song, SongLabel } from "@/lib/types";
+import type { Song } from "@beatsbykai/core";
+import { LABEL_STYLES } from "@/lib/labels";
 
 // Mirrors the library's row treatment. LibraryView still defines its own rows
 // inline; it can adopt this once there is a reason to touch that file.
-const LABEL_STYLES: Record<SongLabel, string> = {
-  new: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25",
-  trending: "bg-amber-500/15  text-amber-400  border border-amber-500/25",
-  featured: "bg-violet-500/15 text-violet-400 border border-violet-500/25",
-};
-
 export default function SongRow({
   song,
   index,

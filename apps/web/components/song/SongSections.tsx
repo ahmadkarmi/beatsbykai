@@ -1,7 +1,7 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { Song } from "@/lib/types";
+import { Song } from "@beatsbykai/core";
 
 /** UI-side name. The analytics taxonomy calls "kaisays" an "explanation". */
 export type SongSection = "lyrics" | "kaisays";
