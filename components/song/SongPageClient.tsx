@@ -217,8 +217,8 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
                 </div>
               )}
 
-              {/* Top vignette — legibility for back button */}
-              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+              {/* Top vignette — legibility for the header controls */}
+              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black/75 via-black/25 to-transparent pointer-events-none" />
               {/* Bottom fade — blends into the black player area */}
               <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-b from-transparent to-black pointer-events-none" />
 
@@ -227,11 +227,11 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
                 <Link
                   href="/"
                   aria-label="Back to Library"
-                  className="w-11 h-11 flex items-center justify-center text-white/60 hover:text-white transition-colors -ml-1"
+                  className="hero-icon w-11 h-11 flex items-center justify-center text-white/95 hover:text-white transition-colors -ml-1"
                 >
                   <ChevronDownIcon />
                 </Link>
-                <span className="text-[9px] font-bold uppercase tracking-[0.35em] text-white/40">
+                <span className="hero-icon text-[9px] font-bold uppercase tracking-[0.35em] text-white/60">
                   Now Playing
                 </span>
                 <ShareButton title={song.title} slug={song.slug} />

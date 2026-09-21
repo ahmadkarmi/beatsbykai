@@ -57,7 +57,7 @@ export default function ShareButton({
     <div className="relative flex items-center justify-end">
       {copied && (
         <span
-          className="absolute right-full mr-2 whitespace-nowrap rounded-full bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-white/80 animate-fade-in"
+          className="absolute right-full mr-2 whitespace-nowrap rounded-full bg-black/75 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-white animate-fade-in"
           aria-hidden="true"
         >
           Link copied
@@ -67,7 +67,7 @@ export default function ShareButton({
         type="button"
         onClick={handleShare}
         aria-label={`Share ${title}`}
-        className="w-11 h-11 flex items-center justify-center text-white/60 hover:text-white transition-colors -mr-1"
+        className="hero-icon w-11 h-11 flex items-center justify-center text-white/95 hover:text-white transition-colors -mr-1"
       >
         {copied ? <CheckIcon /> : <ShareIcon />}
       </button>
