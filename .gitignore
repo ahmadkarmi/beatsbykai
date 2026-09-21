@@ -34,3 +34,12 @@ tsconfig.tsbuildinfo
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# expo / react native
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
