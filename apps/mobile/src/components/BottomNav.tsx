@@ -1,7 +1,10 @@
-import { Pressable, View, StyleSheet } from "react-native";
+import { Pressable, View, StyleSheet, useWindowDimensions } from "react-native";
+import Animated, { useAnimatedStyle, withTiming } from "react-native-reanimated";
+import { usePlayer } from "@/player/PlayerContext";
+import EqualizerBars from "./EqualizerBars";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ComponentProps } from "react";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import AppText from "./AppText";
 import { AboutIcon, LibraryIcon } from "./icons";
 import { colors, layout, space } from "@/theme";
@@ -22,6 +25,19 @@ type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>
 
 export default function BottomNav({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const { currentSong, isPlaying } = usePlayer();
+
+  // Not a Tabs.Screen: on web this is not a route either, just a link that
+  // appears once a song with audio is loaded. Width is animated as an
+  // absolute value — Reanimated does not interpolate percentage strings
+  // reliably.
+  const hasActiveSong = !!currentSong?.mp3Url;
+  const playingStyle = useAnimatedStyle(() => ({
+    width: withTiming(hasActiveSong ? width * 0.3 : 0, { duration: 300 }),
+    opacity: withTiming(hasActiveSong ? 1 : 0, { duration: 300 }),
+  }));
 
   return (
     <View
@@ -52,6 +68,20 @@ export default function BottomNav({ state, navigation }: TabBarProps) {
           </Pressable>
         );
       })}
+
+      <Animated.View style={[styles.playing, playingStyle]}>
+        <Pressable
+          onPress={() => currentSong && router.push(`/songs/${currentSong.slug}`)}
+          accessibilityRole="button"
+          accessibilityLabel="Now playing"
+          style={styles.tab}
+        >
+          <EqualizerBars playing={isPlaying} color={colors.accent} />
+          <AppText variant="micro" color={colors.accent} style={styles.label}>
+            Playing
+          </AppText>
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -77,4 +107,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   label: { marginTop: 2 },
+  playing: { overflow: "hidden", justifyContent: "center" },
 });

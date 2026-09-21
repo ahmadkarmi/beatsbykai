@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View, useWindowDimensions, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,6 +7,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { ARTIST_NAME } from "@beatsbykai/core";
 import { useSongs } from "@/data/SongsProvider";
+import { usePlayer } from "@/player/PlayerContext";
+import { analytics } from "@/lib/analytics";
+import Scrubber from "@/components/Scrubber";
+import Transport from "@/components/Transport";
 import AppText from "@/components/AppText";
 import LabelChip from "@/components/LabelChip";
 import { ChevronDownIcon, PlaceholderCoverIcon, ShareIcon } from "@/components/icons";
@@ -19,10 +23,42 @@ export default function SongScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const { getBySlug, loading } = useSongs();
+  const { getBySlug, loading, songs } = useSongs();
 
   const song = getBySlug(slug);
   const [section, setSection] = useState<Section>("lyrics");
+
+  const {
+    currentSong, isPlaying, isLoading, progress, duration, queue, activeQueue,
+    shuffle, repeat, play, pause, resume, seekTo, setQueue, playPrevious,
+    toggleShuffle, cycleRepeat,
+  } = usePlayer();
+
+  // Seed the queue on a deep link or cold start, exactly as web does.
+  useEffect(() => {
+    if (queue.length === 0 && songs.length > 0) setQueue(songs);
+  }, [queue.length, songs, setQueue]);
+
+  useEffect(() => {
+    if (song) analytics.trackSongPageView(song.title, song.slug);
+    // Fires per song, not per render of the same song.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [song?.title, song?.slug]);
+
+  // Auto-advance navigation. `replace`, not `push`: on native, pushing per
+  // track would leave a 20-deep stack after a listening session and a back
+  // button that walks the entire history.
+  const prevSongIdRef = useRef<string | undefined>(currentSong?.id);
+  useEffect(() => {
+    const prev = prevSongIdRef.current;
+    prevSongIdRef.current = currentSong?.id;
+    if (currentSong && prev === song?.id && currentSong.id !== song?.id) {
+      router.replace(`/songs/${currentSong.slug}`);
+    }
+    // Intentionally keyed on the id alone: this must run when playback moves
+    // to another track, not when any other player state changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSong?.id]);
 
   if (!song) {
     return (
@@ -33,6 +69,12 @@ export default function SongScreen() {
       </View>
     );
   }
+
+  const isCurrentSong = currentSong?.id === song.id;
+  const isActive = isCurrentSong && isPlaying;
+  const noAudio = !song.mp3Url;
+  const effectiveQueue = activeQueue.length > 0 ? activeQueue : songs;
+  const currentIndex = effectiveQueue.findIndex((s) => s.id === song.id);
 
   const hasLyrics = !!song.lyrics;
   const hasKaiSays = !!song.explanation;
@@ -119,12 +161,48 @@ export default function SongScreen() {
           </View>
         )}
 
-        {!song.mp3Url && (
+        {noAudio && (
           <AppText variant="micro" color={colors.muted} style={styles.comingSoon}>
             Coming Soon
           </AppText>
         )}
       </Animated.View>
+
+      {!noAudio && (
+        <Scrubber
+          progress={isCurrentSong ? progress : 0}
+          duration={isCurrentSong ? duration : 0}
+          enabled={isCurrentSong}
+          onSeek={seekTo}
+        />
+      )}
+
+      <Transport
+        isPlaying={isActive}
+        isLoading={isLoading && isCurrentSong}
+        disabled={noAudio}
+        shuffle={shuffle}
+        repeat={repeat}
+        hasPrevious={currentIndex > 0}
+        hasNext={currentIndex !== -1 && currentIndex < effectiveQueue.length - 1}
+        title={song.title}
+        onPlayPause={() => {
+          if (!isCurrentSong) return play(song, "song_page");
+          if (isPlaying) pause();
+          else resume();
+        }}
+        onPrevious={playPrevious}
+        onNext={() => {
+          const target =
+            effectiveQueue[currentIndex + 1] ??
+            (repeat !== "off" ? effectiveQueue[0] : undefined);
+          if (!target) return;
+          play(target, "next_button");
+          router.replace(`/songs/${target.slug}`);
+        }}
+        onToggleShuffle={toggleShuffle}
+        onCycleRepeat={cycleRepeat}
+      />
 
       {(hasLyrics || hasKaiSays) && (
         <View style={styles.sections}>

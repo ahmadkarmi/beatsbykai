@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { ARTIST_DESCRIPTION, type Song } from "@beatsbykai/core";
 import { useSongs } from "@/data/SongsProvider";
+import { usePlayer } from "@/player/PlayerContext";
 import AppText from "@/components/AppText";
 import TrackRow from "@/components/TrackRow";
 import { colors, space } from "@/theme";
@@ -44,13 +45,20 @@ export default function LibraryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { songs, loading, stale, refresh } = useSongs();
+  const { currentSong, play, setQueue } = usePlayer();
 
   // Matches web: first song labelled "featured", else the first song.
   const featured = songs.find((s) => s.labels?.includes("featured")) ?? songs[0];
 
+  // Tapping a row starts playback and opens the song, matching the web's
+  // library rows. setQueue first so next/prev have the full list.
   const open = useCallback(
-    (song: Song) => router.push(`/songs/${song.slug}`),
-    [router]
+    (song: Song) => {
+      setQueue(songs);
+      play(song, "library_grid");
+      router.push(`/songs/${song.slug}`);
+    },
+    [router, play, setQueue, songs]
   );
 
   if (loading && songs.length === 0) {
@@ -88,7 +96,12 @@ export default function LibraryScreen() {
         </View>
       }
       renderItem={({ item, index }) => (
-        <TrackRow song={item} index={index} onPress={open} />
+        <TrackRow
+          song={item}
+          index={index}
+          active={currentSong?.id === item.id}
+          onPress={open}
+        />
       )}
       refreshControl={
         <RefreshControl
