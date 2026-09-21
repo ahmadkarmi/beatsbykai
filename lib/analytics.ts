@@ -13,7 +13,6 @@ export type PlaySource =
   | "prev_button";
 
 declare global {
-  // eslint-disable-next-line no-var
   var gtag: ((command: string, eventName: string, params?: Record<string, string>) => void) | undefined;
 }
 

@@ -39,7 +39,7 @@ Control panel — deliberately distinct so admin never looks like the site
 ```
 
 Song label colours are **not** tokens — they are Tailwind classes duplicated
-across `LibraryView`, `MiniPlayer`, `SongPageClient`, `SongCard` and `SongForm`
+across `LibraryView`, `MiniPlayer`, `SongPageClient` and `SongForm`
 (`new` = emerald, `trending` = amber, `featured` = violet), with slightly
 different alpha values between copies.
 
@@ -134,7 +134,7 @@ the route files under `app/`.
   Providers.tsx              client root — wraps the app in PlayerProvider and
                              renders the persistent shell (see order below)
   /player
-    PlayerContext.tsx  (442) global player state: current song, queue,
+    PlayerContext.tsx  (451) global player state: current song, queue,
                              shuffle/repeat, progress. Owns the single HTML5
                              Audio element and the Media Session bindings.
     MiniPlayer.tsx     (114) persistent bar above BottomNav. Hidden on
@@ -143,17 +143,19 @@ the route files under `app/`.
     LibraryView.tsx    (414) home screen: hero, featured song, track list.
                              Seeds the player queue via setQueue() on mount.
                              Holds its own mobile and desktop row components.
-    SongCard.tsx       (128) UNUSED — see Known Issues.
   /song
-    SongPageClient.tsx (568) full-screen player: cover hero, scrubber,
-                             transport, lyrics / "Kai Says" panels.
+    SongPageClient.tsx (456) full-screen player: cover hero, scrubber,
+                             transport, section tabs.
+    SongSections.tsx    (83) the lyrics / "Kai Says" bottom sheet, the shared
+                             section body, and the UI -> analytics name map.
     ShareButton.tsx     (99) native share sheet with clipboard fallback.
+    icons.tsx           (88) transport and chrome icons.
   /layout
     BottomNav.tsx      (142) Library / About tabs, plus a third "Playing" tab
                              that animates in once a song with audio is loaded.
     MainContent.tsx     (19) <main> wrapper; bottom padding tracks whether the
                              MiniPlayer is present (pb-14 -> pb-[7.5rem]).
-    NavigationProgress  (67) top progress bar driven by pathname changes.
+    NavigationProgress  (79) top progress bar driven by pathname changes.
     PageTransition.tsx  (12) fade-in keyed on pathname.
 
 /app/controlpanel/_components     admin only — behind the proxy.ts auth gate
@@ -173,13 +175,13 @@ PlayerProvider
   BottomNav
 ```
 
-### Known Issues
+Every file is within the 500 LOC ceiling in `CLAUDE.md`.
 
-- `components/library/SongCard.tsx` is dead code — nothing imports it.
-  `LibraryView` defines its own row components inline. Safe to delete.
-- `components/song/SongPageClient.tsx` is 568 LOC, over the 500 LOC ceiling in
-  `CLAUDE.md`. The lyrics / "Kai Says" panels and the icon set are the natural
-  extractions.
+`PlayerContext` writes its stale-closure mirror refs (`currentSongRef`,
+`queueRef`, `shuffledQueueRef`, `shuffleRef`, `repeatRef`, `playRef`) from an
+effect, never during render. Every reader is an async callback that runs after
+commit, so this is soon enough, and render-phase ref writes break under
+StrictMode's double render. Keep new refs on the same pattern.
 
 ## Analytics Events (GA4)
 
@@ -205,13 +207,14 @@ is absent (SSR, GA blocked, GA not configured).
 `play_source` is one of `library_featured`, `library_grid`, `song_list`,
 `song_page`, `auto_advance`, `next_button`, `prev_button`.
 
-Known gaps:
+The UI calls the "Kai Says" panel `kaisays`; the taxonomy calls it
+`explanation`. `sectionEventName()` in `SongSections.tsx` is the single place
+that maps between them — do not change the event parameter to match the UI.
 
-- **`section_toggled` never fires.** `trackSectionToggled` is exported but no
-  component calls it, so lyrics / "Kai Says" engagement is unmeasured.
-- Lock-screen and Bluetooth `nexttrack` / `previoustrack` go straight to the
-  Media Session handlers in `PlayerContext`, bypassing `playNext()` /
-  `playPrevious()`, so remote skips emit no `next_track` / `prev_track`.
+Media Session handlers route through `resume` / `pause` / `playNext` /
+`playPrevious` / `seekTo` rather than driving the audio element directly, so
+lock-screen, headset and car controls honour shuffle and repeat and emit the
+same events as the on-screen transport.
 
 ## Social Sharing
 

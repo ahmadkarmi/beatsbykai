@@ -8,15 +8,26 @@ export default function NavigationProgress() {
   const [visible, setVisible] = useState(false);
   const [width, setWidth] = useState(0);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const navigatingRef = useRef(false);
 
   const clear = () => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
   };
 
-  // Navigation complete — fill to 100 then fade out
+  // Navigation complete — fill to 100 then fade out.
+  // Guarded so the initial mount, and any pathname change we did not start
+  // (back/forward, programmatic push), do not queue state updates for a bar
+  // that was never shown.
   useEffect(() => {
+    if (!navigatingRef.current) return;
+    navigatingRef.current = false;
     clear();
+    // The completed route change is precisely the external event this effect
+    // synchronises with. Deferring the fill would add a frame of lag to a
+    // 350ms animation and buy nothing, and the guard above already prevents
+    // renders for navigations this component did not start.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWidth(100);
     const t = setTimeout(() => {
       setVisible(false);
@@ -35,6 +46,7 @@ export default function NavigationProgress() {
       if (!href || href.startsWith("http") || href.startsWith("#") || href === pathname) return;
 
       clear();
+      navigatingRef.current = true;
       setVisible(true);
       setWidth(25);
       const t1 = setTimeout(() => setWidth(55), 200);

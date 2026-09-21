@@ -3,13 +3,27 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerContext";
-import type { RepeatMode } from "@/components/player/PlayerContext";
 import { Song } from "@/lib/types";
-import { trackSongPageView } from "@/lib/analytics";
+import { trackSongPageView, trackSectionToggled } from "@/lib/analytics";
 import ShareButton from "@/components/song/ShareButton";
+import LyricsSheet, {
+  SectionBody,
+  sectionEventName,
+  type SongSection,
+} from "@/components/song/SongSections";
+import {
+  ChevronDownIcon,
+  LoadingSpinner,
+  NextIcon,
+  PauseIcon,
+  PlayIcon,
+  PreviousIcon,
+  RepeatIcon,
+  RepeatOneIcon,
+  ShuffleIcon,
+} from "@/components/song/icons";
 import type { SongLabel } from "@/lib/types";
 
 const LABEL_STYLES: Record<SongLabel, string> = {
@@ -42,7 +56,6 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
     resume,
     seekTo,
     setQueue,
-    playNext,
     playPrevious,
     toggleShuffle,
     cycleRepeat,
@@ -66,10 +79,10 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
   const scrubRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const [scrubProgress, setScrubProgress] = useState<number | null>(null);
-  const [desktopTab, setDesktopTab] = useState<"lyrics" | "kaisays">(
+  const [desktopTab, setDesktopTab] = useState<SongSection>(
     song.lyrics ? "lyrics" : "kaisays"
   );
-  const [bottomSheet, setBottomSheet] = useState<"lyrics" | "kaisays" | null>(null);
+  const [bottomSheet, setBottomSheet] = useState<SongSection | null>(null);
 
   // Track the previous currentSong so we can detect auto-advance
   const prevCurrentSongIdRef = useRef<string | undefined>(currentSong?.id);
@@ -86,9 +99,28 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
     trackSongPageView(song.title, song.slug);
   }, [song.title, song.slug]);
 
+  const openSheet = (section: SongSection) => {
+    setBottomSheet(section);
+    trackSectionToggled(sectionEventName(section), "open", song.title, song.slug);
+  };
+
+  const closeSheet = () => {
+    if (bottomSheet) {
+      trackSectionToggled(sectionEventName(bottomSheet), "close", song.title, song.slug);
+    }
+    setBottomSheet(null);
+  };
+
+  const selectTab = (tab: SongSection) => {
+    if (tab === desktopTab) return;
+    setDesktopTab(tab);
+    trackSectionToggled(sectionEventName(tab), "open", song.title, song.slug);
+  };
+
   const handlePlayPause = () => {
     if (isCurrentSong) {
-      isPlaying ? pause() : resume();
+      if (isPlaying) pause();
+      else resume();
     } else {
       play(song, "song_page");
     }
@@ -351,7 +383,7 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
               <div className="flex gap-2 px-6 pb-20 lg:hidden">
                 {song.lyrics && (
                   <button
-                    onClick={() => setBottomSheet("lyrics")}
+                    onClick={() => openSheet("lyrics")}
                     className="flex-1 h-10 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-white/45 hover:text-white/70 transition-colors"
                     style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
                   >
@@ -360,7 +392,7 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
                 )}
                 {song.explanation && (
                   <button
-                    onClick={() => setBottomSheet("kaisays")}
+                    onClick={() => openSheet("kaisays")}
                     className="flex-1 h-10 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-white/45 hover:text-white/70 transition-colors"
                     style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
                   >
@@ -380,7 +412,7 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
               <div className="flex-shrink-0 flex items-center gap-1 px-10 pt-10 pb-6 border-b border-white/[0.06]">
                 {song.lyrics && (
                   <button
-                    onClick={() => setDesktopTab("lyrics")}
+                    onClick={() => selectTab("lyrics")}
                     className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-200 ${
                       desktopTab === "lyrics"
                         ? "bg-white/10 text-white"
@@ -392,7 +424,7 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
                 )}
                 {song.explanation && (
                   <button
-                    onClick={() => setDesktopTab("kaisays")}
+                    onClick={() => selectTab("kaisays")}
                     className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-200 ${
                       desktopTab === "kaisays"
                         ? "bg-white/10 text-white"
@@ -406,14 +438,7 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
 
               {/* Content */}
               <div className="px-10 py-8 pb-20">
-                {desktopTab === "lyrics" && song.lyrics && (
-                  <pre className="text-sm text-white/60 leading-loose font-sans whitespace-pre-wrap">
-                    {song.lyrics}
-                  </pre>
-                )}
-                {desktopTab === "kaisays" && song.explanation && (
-                  <p className="text-sm text-white/60 leading-relaxed">{song.explanation}</p>
-                )}
+                <SectionBody section={desktopTab} song={song} />
               </div>
 
             </div>
@@ -422,147 +447,10 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
         </div>
       </div>
 
-      {/* ── Mobile bottom sheet: portalled to body to escape stacking context ── */}
-      {bottomSheet && createPortal(
-        <div className="fixed inset-0 z-[200] lg:hidden flex flex-col justify-end" aria-modal="true">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-backdrop"
-            onClick={() => setBottomSheet(null)}
-          />
-          {/* Sheet — sits above the nav */}
-          <div
-            className="relative flex flex-col rounded-t-2xl overflow-hidden animate-slide-up"
-            style={{ maxHeight: "80dvh", background: "#141414", borderTop: "1px solid rgba(255,255,255,0.08)" }}
-          >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="w-9 h-1 rounded-full bg-white/15" />
-            </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 flex-shrink-0 border-b border-white/[0.06]">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/30">
-                {bottomSheet === "lyrics" ? "Lyrics" : "Kai Says"}
-              </span>
-              <button
-                onClick={() => setBottomSheet(null)}
-                className="w-7 h-7 flex items-center justify-center rounded-full text-white/30 hover:text-white/60 transition-colors text-sm"
-                style={{ background: "rgba(255,255,255,0.06)" }}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-            {/* Content — pb-16 clears the nav bar */}
-            <div className="flex-1 overflow-y-auto px-5 py-6 pb-16">
-              {bottomSheet === "lyrics" && song.lyrics && (
-                <pre className="text-sm text-white/60 leading-loose font-sans whitespace-pre-wrap">
-                  {song.lyrics}
-                </pre>
-              )}
-              {bottomSheet === "kaisays" && song.explanation && (
-                <p className="text-sm text-white/60 leading-relaxed">{song.explanation}</p>
-              )}
-            </div>
-          </div>
-        </div>,
-        document.body
+      {bottomSheet && (
+        <LyricsSheet section={bottomSheet} song={song} onClose={closeSheet} />
       )}
 
     </div>
-  );
-}
-
-function LoadingSpinner() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" className="animate-spin">
-      <path d="M12 2a10 10 0 0 1 10 10" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
-function ChevronIcon({ open }: { open: boolean }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-white/25 transition-transform duration-200 ${open ? "rotate-180" : ""}`}>
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
-
-function PreviousIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-      <polygon points="19,20 9,12 19,4" />
-      <rect x="5" y="4" width="2.5" height="16" rx="1" />
-    </svg>
-  );
-}
-
-function NextIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-      <polygon points="5,4 15,12 5,20" />
-      <rect x="16.5" y="4" width="2.5" height="16" rx="1" />
-    </svg>
-  );
-}
-
-function PlayIcon({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="white" className="ml-1">
-      <polygon points="5,3 19,12 5,21" />
-    </svg>
-  );
-}
-
-function PauseIcon({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="white">
-      <rect x="6" y="4" width="4" height="16" />
-      <rect x="14" y="4" width="4" height="16" />
-    </svg>
-  );
-}
-
-function ShuffleIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="16 3 21 3 21 8" />
-      <line x1="4" y1="20" x2="21" y2="3" />
-      <polyline points="21 16 21 21 16 21" />
-      <line x1="15" y1="15" x2="21" y2="21" />
-      <line x1="4" y1="4" x2="9" y2="9" />
-    </svg>
-  );
-}
-
-function RepeatIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="17 1 21 5 17 9" />
-      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-      <polyline points="7 23 3 19 7 15" />
-      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-    </svg>
-  );
-}
-
-function RepeatOneIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="17 1 21 5 17 9" />
-      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-      <polyline points="7 23 3 19 7 15" />
-      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-      <text x="11.5" y="14" fontSize="6" fill="currentColor" stroke="none" textAnchor="middle" fontWeight="bold">1</text>
-    </svg>
   );
 }

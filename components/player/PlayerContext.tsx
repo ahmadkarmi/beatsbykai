@@ -71,17 +71,27 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<RepeatMode>("all");
 
-  // Always-current refs to avoid stale closures in audio callbacks
+  // Always-current refs to avoid stale closures in audio callbacks.
+  //
+  // Assigned in an effect rather than during render. Every reader is an async
+  // callback that runs well after commit — the audio element's own events and
+  // the Media Session handlers — so post-paint assignment is soon enough, and
+  // the initial useRef() values are already correct for the first frame.
+  // Writing refs during render is unsafe under StrictMode's double render and
+  // under concurrent rendering, where a render can be thrown away.
   const currentSongRef = useRef(currentSong);
-  currentSongRef.current = currentSong;
   const queueRef = useRef(queue);
-  queueRef.current = queue;
   const shuffledQueueRef = useRef(shuffledQueue);
-  shuffledQueueRef.current = shuffledQueue;
   const shuffleRef = useRef(shuffle);
-  shuffleRef.current = shuffle;
   const repeatRef = useRef(repeat);
-  repeatRef.current = repeat;
+
+  useEffect(() => {
+    currentSongRef.current = currentSong;
+    queueRef.current = queue;
+    shuffledQueueRef.current = shuffledQueue;
+    shuffleRef.current = shuffle;
+    repeatRef.current = repeat;
+  });
 
   // The queue consumers should use for prev/next/ordering
   const activeQueue = shuffle ? shuffledQueue : queue;
@@ -226,8 +236,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [] // no deps — reads via refs
   );
 
-  // Keep playRef current so onEnded always has latest play()
-  playRef.current = play;
+  // Keep playRef current so onEnded always has the latest play(). The `ended`
+  // listener is registered once on mount but never fires before this lands.
+  useEffect(() => {
+    playRef.current = play;
+  }, [play]);
 
   // ── Media Session API ──────────────────────────────────────────
   // Pushes song metadata + controls to OS, car displays, lock screen, BT
@@ -261,53 +274,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     if (!("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }, [isPlaying]);
-
-  // Register action handlers once — reads latest state via refs
-  useEffect(() => {
-    if (!("mediaSession" in navigator)) return;
-    navigator.mediaSession.setActionHandler("play", () => {
-      audioRef.current?.play().catch(() => {});
-    });
-    navigator.mediaSession.setActionHandler("pause", () => {
-      audioRef.current?.pause();
-    });
-    navigator.mediaSession.setActionHandler("nexttrack", () => {
-      playRef.current(
-        (() => {
-          const q = shuffleRef.current ? shuffledQueueRef.current : queueRef.current;
-          const cur = currentSongRef.current;
-          if (!cur || !q.length) return cur!;
-          const idx = q.findIndex((s) => s.id === cur.id);
-          return idx !== -1 && idx < q.length - 1 ? q[idx + 1] : q[0];
-        })(),
-        "next_button"
-      );
-    });
-    navigator.mediaSession.setActionHandler("previoustrack", () => {
-      const audio = audioRef.current;
-      if (audio && audio.currentTime > 3) { audio.currentTime = 0; return; }
-      const q = shuffleRef.current ? shuffledQueueRef.current : queueRef.current;
-      const cur = currentSongRef.current;
-      if (!cur || !q.length) return;
-      const idx = q.findIndex((s) => s.id === cur.id);
-      if (idx > 0) playRef.current(q[idx - 1], "prev_button");
-    });
-    navigator.mediaSession.setActionHandler("seekto", (details) => {
-      const audio = audioRef.current;
-      if (!audio || details.seekTime == null) return;
-      audio.currentTime = details.seekTime;
-    });
-    navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset ?? 10));
-    });
-    navigator.mediaSession.setActionHandler("seekforward", (details) => {
-      const audio = audioRef.current;
-      if (!audio) return;
-      audio.currentTime = Math.min(audio.duration, audio.currentTime + (details.seekOffset ?? 10));
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep position state current so car display shows a scrubber
   useEffect(() => {
@@ -406,6 +372,49 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
   }, []);
+
+  // Media Session action handlers — lock screen, notification, headset, car.
+  // Declared after the transport callbacks so they can be real dependencies.
+  // Routing through playNext/playPrevious/seekTo rather than driving the audio
+  // element directly is what makes remote controls honour shuffle and repeat,
+  // and emit the same analytics as the on-screen transport.
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const ms = navigator.mediaSession;
+
+    ms.setActionHandler("play", () => resume());
+    ms.setActionHandler("pause", () => pause());
+    ms.setActionHandler("nexttrack", () => playNext("next_button"));
+    ms.setActionHandler("previoustrack", () => playPrevious());
+
+    // seekTo() takes a 0..1 fraction; the Media Session API speaks seconds.
+    const seekSeconds = (seconds: number) => {
+      const audio = audioRef.current;
+      if (!audio || !audio.duration || isNaN(audio.duration)) return;
+      seekTo(Math.max(0, Math.min(audio.duration, seconds)) / audio.duration);
+    };
+
+    ms.setActionHandler("seekto", (d) => {
+      if (d.seekTime == null) return;
+      seekSeconds(d.seekTime);
+    });
+    ms.setActionHandler("seekbackward", (d) => {
+      const audio = audioRef.current;
+      if (audio) seekSeconds(audio.currentTime - (d.seekOffset ?? 10));
+    });
+    ms.setActionHandler("seekforward", (d) => {
+      const audio = audioRef.current;
+      if (audio) seekSeconds(audio.currentTime + (d.seekOffset ?? 10));
+    });
+
+    return () => {
+      const actions = [
+        "play", "pause", "nexttrack", "previoustrack",
+        "seekto", "seekbackward", "seekforward",
+      ] as const;
+      for (const action of actions) ms.setActionHandler(action, null);
+    };
+  }, [resume, pause, playNext, playPrevious, seekTo]);
 
   return (
     <PlayerContext.Provider
