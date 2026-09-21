@@ -107,16 +107,44 @@ export const expoAudioEngine: PlayerEngine = {
   },
 
   onRemoteCommand(cb) {
-    // Wired in slice 6 alongside background playback. expo-audio 57.0.5's
-    // AudioLockScreenOptions exposes only showSeekForward / showSeekBackward
-    // / isLiveStream — there is no next/previous track support, which is what
-    // the patch in expo#43538 adds.
+    // Nothing to forward yet, and that is correct rather than incomplete:
+    // expo-audio 57 handles play / pause / toggle / seek natively on the
+    // player and emits no JS events for them, so the OS controls drive
+    // playback directly and our status subscription observes the result.
+    //
+    // Next / previous are the exception — they do not exist at all in this
+    // version's AudioLockScreenOptions. When the expo#43538 patch lands, its
+    // onRemoteNextTrack / onRemotePreviousTrack events get translated to
+    // RemoteCommand here and nowhere else.
     remoteListeners.add(cb);
     return () => remoteListeners.delete(cb);
   },
 
-  setNowPlaying(_meta: NowPlayingMeta | null, _caps: RemoteCapabilities) {
-    // Slice 6.
+  setNowPlaying(meta: NowPlayingMeta | null, _caps: RemoteCapabilities) {
+    const p = player;
+    if (!p) return;
+
+    if (!meta) {
+      p.setActiveForLockScreen(false);
+      return;
+    }
+
+    // Required on Android, not optional polish: without it the foreground
+    // service is not kept alive and playback stops after roughly three
+    // minutes in the background (OS limitation, per expo-audio's own docs).
+    //
+    // `caps` is ignored for now. expo-audio 57's AudioLockScreenOptions has
+    // no next/previous fields — that is what the expo#43538 patch adds.
+    p.setActiveForLockScreen(
+      true,
+      {
+        title: meta.title,
+        artist: meta.artist,
+        albumTitle: meta.albumTitle,
+        artworkUrl: meta.artworkUrl,
+      },
+      { showSeekForward: true, showSeekBackward: true }
+    );
   },
 
   setPositionState() {

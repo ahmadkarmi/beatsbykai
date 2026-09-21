@@ -6,7 +6,9 @@ import {
   useRef,
   useState,
 } from "react";
+import { Platform, PermissionsAndroid } from "react-native";
 import {
+  ARTIST_NAME,
   COMPLETE_THRESHOLD,
   RESET_THRESHOLD,
   buildShuffledQueue,
@@ -15,6 +17,7 @@ import {
   resolveEnded,
   resolveNext,
   resolvePrevious,
+  nowPlayingFor,
   type EngineStatus,
   type PlaySource,
   type RepeatMode,
@@ -100,6 +103,32 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const completedRef = useRef(false);
   /** Guards against didJustFinish being observed on more than one tick. */
   const endedHandledRef = useRef<string | null>(null);
+
+  // Android 13+ gates the media notification behind a runtime permission, and
+  // on Android the notification IS the lock screen control. Denied is not
+  // fatal: playback continues, only the controls are missing.
+  useEffect(() => {
+    if (Platform.OS !== "android" || Number(Platform.Version) < 33) return;
+    PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+    ).catch(() => {});
+  }, []);
+
+  // Publish now-playing whenever the track changes. On Android this also
+  // keeps the foreground service alive — without it playback dies after
+  // about three minutes in the background.
+  useEffect(() => {
+    if (!currentSong) {
+      engine.setNowPlaying(null, { next: false, previous: false });
+      return;
+    }
+    const q = shuffle ? shuffledQueue : queue;
+    const idx = q.findIndex((s) => s.id === currentSong.id);
+    engine.setNowPlaying(
+      nowPlayingFor(currentSong, ARTIST_NAME, "beatsbykai.com"),
+      { next: idx !== -1 && idx < q.length - 1, previous: idx > 0 }
+    );
+  }, [currentSong, queue, shuffledQueue, shuffle]);
 
   useEffect(() => {
     configureAudioSession().catch(() => {
