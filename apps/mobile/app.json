@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "beatsbykai",
+    "slug": "beatsbykai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "beatsbykai",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0a0a",
+    "primaryColor": "#d4820a",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "bundleIdentifier": "com.beatsbykai.app",
+      "supportsTablet": false,
+      "userInterfaceStyle": "dark"
+    },
+    "android": {
+      "package": "com.beatsbykai.app",
+      "userInterfaceStyle": "dark",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon-foreground.png",
+        "backgroundColor": "#0a0a0a"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0a0a0a",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
