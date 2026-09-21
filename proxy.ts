@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ADMIN_COOKIE, verifySessionToken } from "@/lib/admin/session";
 
-export function proxy(request: NextRequest) {
+// Gate for admin *pages*. This is defence in depth only — it cannot protect
+// Server Actions, which POST to whatever path the caller is on and so never
+// hit this matcher. Every mutating action calls requireAdmin() itself.
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect old /admin path away
@@ -9,9 +13,8 @@ export function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/controlpanel") && pathname !== "/controlpanel/login") {
-    const token = request.cookies.get("admin_token")?.value;
-    const expected = process.env.WORKER_ADMIN_SECRET;
-    if (!token || token !== expected) {
+    const ok = await verifySessionToken(request.cookies.get(ADMIN_COOKIE)?.value);
+    if (!ok) {
       return NextResponse.redirect(new URL("/controlpanel/login", request.url));
     }
   }

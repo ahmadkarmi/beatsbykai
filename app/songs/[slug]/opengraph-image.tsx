@@ -38,9 +38,24 @@ function toDataUri(buf: Buffer, mime: string): string {
   return `data:${mime};base64,${buf.toString("base64")}`;
 }
 
+/**
+ * `coverArtUrl` is operator-supplied data that we fetch server-side, so it is
+ * an SSRF sink. Pin it to the media host rather than trusting the value.
+ */
+const MEDIA_HOST = "pub-56eee1e388224dd293f25bccc68afdca.r2.dev";
+
+function isAllowedCover(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.hostname === MEDIA_HOST;
+  } catch {
+    return false;
+  }
+}
+
 /** Cover art as a data URI. Falls back to the brand mark if R2 is unreachable. */
 async function loadCover(coverArtUrl: string): Promise<string> {
-  if (coverArtUrl) {
+  if (coverArtUrl && isAllowedCover(coverArtUrl)) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     try {

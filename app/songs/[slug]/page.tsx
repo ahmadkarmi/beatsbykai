@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getSongBySlug, getPublishedSongs } from "@/lib/data/songs";
 import SongPageClient from "@/components/song/SongPageClient";
 import { SITE_URL, ARTIST_NAME, ARTIST_DESCRIPTION, SAME_AS } from "@/lib/site";
+import { jsonLd as jsonLdScript } from "@/lib/jsonld";
 
 export const revalidate = 60;
 
@@ -86,7 +87,7 @@ export default async function SongPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
       />
       <SongPageClient song={song} allSongs={allSongs} />
     </>

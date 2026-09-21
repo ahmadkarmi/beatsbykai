@@ -1,9 +1,18 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import type { SongLabel } from "@/lib/types";
+import { safeEqual } from "@/lib/safe-equal";
+import { requireAdmin } from "./guard";
+import { ADMIN_COOKIE, SESSION_TTL_MS, createSessionToken } from "./session";
+import {
+  clearFailures,
+  failedAttemptDelay,
+  isRateLimited,
+  recordFailure,
+} from "./rate-limit";
 import {
   adminCreateSong,
   adminUpdateSong,
@@ -24,17 +33,38 @@ function parseTags(formData: FormData): string[] {
   return raw.split(",").map((t) => t.trim()).filter(Boolean);
 }
 
+async function clientKey(): Promise<string> {
+  const h = await headers();
+  const fwd = h.get("x-forwarded-for") ?? "";
+  return fwd.split(",")[0].trim() || h.get("x-real-ip") || "unknown";
+}
+
 export async function loginAction(formData: FormData) {
-  const password = formData.get("password") as string;
-  if (password !== process.env.ADMIN_PASSWORD) {
+  const key = await clientKey();
+
+  if (isRateLimited(key)) {
+    await failedAttemptDelay();
+    return { error: "Too many attempts. Try again later." };
+  }
+
+  const password = formData.get("password");
+  const expected = process.env.ADMIN_PASSWORD;
+
+  if (typeof password !== "string" || !expected || !(await safeEqual(password, expected))) {
+    recordFailure(key);
+    await failedAttemptDelay();
     return { error: "Invalid password" };
   }
+
+  clearFailures(key);
+
   const jar = await cookies();
-  jar.set("admin_token", process.env.WORKER_ADMIN_SECRET!, {
+  // Signed expiry, not a secret — see lib/admin/session.ts.
+  jar.set(ADMIN_COOKIE, await createSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: SESSION_TTL_MS / 1000,
     path: "/",
   });
   redirect("/controlpanel");
@@ -42,11 +72,12 @@ export async function loginAction(formData: FormData) {
 
 export async function logoutAction() {
   const jar = await cookies();
-  jar.delete("admin_token");
+  jar.delete(ADMIN_COOKIE);
   redirect("/controlpanel/login");
 }
 
 export async function createSongAction(formData: FormData) {
+  await requireAdmin();
   const title = formData.get("title") as string;
   const slug = (formData.get("slug") as string).toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
   const description = formData.get("description") as string;
@@ -78,6 +109,7 @@ export async function createSongAction(formData: FormData) {
 }
 
 export async function updateSongAction(slug: string, formData: FormData) {
+  await requireAdmin();
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
   const lyrics = formData.get("lyrics") as string;
@@ -106,6 +138,7 @@ export async function updateSongAction(slug: string, formData: FormData) {
 }
 
 export async function deleteSongAction(slug: string) {
+  await requireAdmin();
   await adminDeleteSong(slug);
   revalidatePath("/controlpanel");
   revalidatePath("/");
@@ -113,12 +146,14 @@ export async function deleteSongAction(slug: string) {
 }
 
 export async function reorderSongsAction(slugs: string[]) {
+  await requireAdmin();
   await adminReorderSongs(slugs);
   revalidatePath("/controlpanel");
   revalidatePath("/");
 }
 
 export async function togglePublishAction(slug: string, published: boolean) {
+  await requireAdmin();
   await adminUpdateSong(slug, { published });
   revalidatePath("/controlpanel");
   revalidatePath("/");

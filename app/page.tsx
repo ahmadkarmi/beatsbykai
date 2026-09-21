@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getPublishedSongs } from "@/lib/data/songs";
+import { jsonLd as jsonLdScript } from "@/lib/jsonld";
 import LibraryView from "@/components/library/LibraryView";
 import {
   SITE_URL,
@@ -54,7 +55,7 @@ export default async function LibraryPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdScript(jsonLd) }}
       />
       <LibraryView songs={songs} />
     </>

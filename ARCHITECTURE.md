@@ -263,21 +263,37 @@ Constraints worth knowing before editing the card:
 content, no public forms. No PII is collected or stored. There is no
 client-side persistence at all — player state is lost on reload.
 
-**Admin auth.** A single shared password in `ADMIN_PASSWORD`. On success
-`loginAction` sets an httpOnly cookie `admin_token` (`sameSite: lax`, `secure`
-in production, 7-day `maxAge`), and `proxy.ts` gates `/controlpanel/*` by
-comparing that cookie to `WORKER_ADMIN_SECRET`.
+**Server Actions are public endpoints.** A Server Action POSTs to whatever
+path the caller is on, and its id ships in public client chunks under
+`/_next/static`. `proxy.ts` therefore *cannot* protect them: an
+unauthenticated POST to `/` never matches its `/controlpanel` matcher. Every
+mutating action in `lib/admin/actions.ts` calls `requireAdmin()`
+(`lib/admin/guard.ts`) as its first statement. **Any new admin action must do
+the same** — the proxy is defence in depth only.
 
-> The cookie's **value is `WORKER_ADMIN_SECRET` itself**, so the Worker's admin
-> secret is held in the browser. `httpOnly` keeps it away from JavaScript, but
-> it is sent on every request to the origin, and rotating the secret signs out
-> every admin session. Issuing a random session token and mapping it to the
-> secret server-side would decouple the two. Accepted for a single-operator
-> admin; revisit if more operators are added.
+**Admin auth.** A single shared password in `ADMIN_PASSWORD`, compared in
+constant time (`lib/safe-equal.ts`). On success the server sets an httpOnly
+`admin_session` cookie holding an HMAC-signed expiry — *not* a secret
+(`lib/admin/session.ts`). The signing key is `WORKER_ADMIN_SECRET`, which
+never leaves the server. Failed logins are counted per IP and every rejection
+carries a fixed delay (`lib/admin/rate-limit.ts`); that store is per-instance
+in-memory, so it is a speed bump rather than a hard limit — making it
+authoritative needs a shared store.
 
 **Secrets.** `WORKER_URL`, `WORKER_ADMIN_SECRET`, `REVALIDATE_SECRET` and
 `ADMIN_PASSWORD` are server-only. Only `NEXT_PUBLIC_*` values reach the client
 bundle. No R2 credentials exist in this app — it never calls R2's API.
+
+**Headers** (`next.config.ts`): CSP, `X-Frame-Options: DENY`,
+`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` on every
+route, plus `X-Robots-Tag: noindex` on `/controlpanel/*`. `script-src` still
+needs `'unsafe-inline'` for Next's hydration scripts and the GA snippet;
+tightening it requires per-request nonces and running the proxy on every
+route.
+
+**Injection.** React escapes everything except the two JSON-LD blocks, which
+go through `lib/jsonld.ts` — `JSON.stringify` does not escape `<`, so an
+operator-supplied title containing `</script>` would otherwise break out.
 
 **Uploads.** There is no upload route in this app. `SongForm` asks a Server
 Action for a short-lived token (the server fetches
@@ -285,13 +301,19 @@ Action for a short-lived token (the server fetches
 `POST`s the file bytes straight to the Worker with that token. File-type and
 size validation therefore live **in the Worker**, not here.
 
-**Media.** The R2 bucket is public and URLs are unsigned, so any uploaded
-object is world-readable by URL. It is served from a `*.r2.dev` hostname, which
-Cloudflare rate-limits and documents as development-only; a custom domain is
-the supported production path.
+**Outbound fetch.** The OG card route fetches `coverArtUrl`, which is
+operator-supplied data, so it is pinned to the media host to avoid SSRF.
 
-**Revalidation.** `/api/revalidate` requires the `x-revalidate-secret` header
-to match `REVALIDATE_SECRET`, and returns 401 otherwise.
+**Revalidation.** `/api/revalidate` compares `x-revalidate-secret` in constant
+time and returns 401 otherwise.
+
+### Known, unfixed
+
+- **The R2 bucket is public and unsigned**, so an unpublished song's audio and
+  artwork are world-readable by URL before release — only the timestamped
+  filename obscures them. It is also served from a `*.r2.dev` hostname, which
+  Cloudflare rate-limits and documents as development-only. Both live in the
+  Worker/R2 configuration, outside this repo.
 
 ## Phase Plan
 
