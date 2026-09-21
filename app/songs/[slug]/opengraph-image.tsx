@@ -2,6 +2,7 @@
    Satori rasterises this tree: <img> is its only image primitive (next/image
    does not work here) and alt text has no output to land in. */
 import { ImageResponse } from "next/og";
+import sharp from "sharp";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getSongBySlug } from "@/lib/data/songs";
@@ -9,9 +10,17 @@ import { ARTIST_NAME, ARTIST_DESCRIPTION } from "@/lib/site";
 
 export const runtime = "nodejs";
 export const revalidate = 60;
-export const contentType = "image/png";
+export const contentType = "image/jpeg";
 export const size = { width: 1200, height: 630 };
 export const alt = `A song by ${ARTIST_NAME}`;
+
+/**
+ * next/og can only emit PNG, and a 1200x630 PNG of photographic cover art
+ * lands at 750KB-1MB. WhatsApp silently drops any og:image over roughly
+ * 300KB and renders a text-only preview, so the card is re-encoded as JPEG
+ * before it goes out. See vercel/next.js#60366.
+ */
+const JPEG_QUALITY = 85;
 
 const AMBER = "#d4820a";
 const INK = "#0a0a0a";
@@ -82,7 +91,7 @@ export default async function SongOgImage({
     readAsset("public/fonts/SpaceGrotesk-Bold.ttf"),
   ];
 
-  return new ImageResponse(
+  const png = await new ImageResponse(
     (
       <div
         style={{
@@ -168,5 +177,17 @@ export default async function SongOgImage({
         { name: "Space Grotesk", data: bold, weight: 700, style: "normal" },
       ],
     }
-  );
+  ).arrayBuffer();
+
+  const jpeg = await sharp(Buffer.from(png))
+    .jpeg({ quality: JPEG_QUALITY, progressive: true })
+    .toBuffer();
+
+  return new Response(new Uint8Array(jpeg), {
+    headers: {
+      "Content-Type": contentType,
+      // Matches `revalidate` above; SWR keeps crawlers off the render path.
+      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=86400",
+    },
+  });
 }

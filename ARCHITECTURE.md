@@ -12,10 +12,11 @@
 | Content API | Cloudflare Worker (separate repo) | REST; the only data source. This app has no database and no ORM. |
 | Media storage | Cloudflare R2 | MP3s + cover art, served from a public bucket |
 | Analytics | GA4 via raw `gtag` + `@vercel/speed-insights` | No analytics SDK; see `lib/analytics.ts` |
+| Image encoding | `sharp` | Only used to re-encode the OG card to JPEG; see Social Sharing. |
 | Fonts | Space Grotesk via `next/font/google` | 400 + 700. Raw TTFs are also vendored in `public/fonts/` for OG rendering. |
 
 Runtime dependencies are deliberately minimal: `next`, `react`, `react-dom`,
-`@vercel/speed-insights`. No state library, no audio library, no UI kit, no form
+`@vercel/speed-insights`, `sharp`. No state library, no audio library, no UI kit, no form
 library, no fetch client. Every icon is hand-written inline SVG.
 
 ## Design Tokens
@@ -225,7 +226,7 @@ rasterised client-side.
 | Piece | File | Notes |
 |---|---|---|
 | Share control | `components/song/ShareButton.tsx` | `navigator.share({ title, url })`, falling back to `navigator.clipboard` with a transient "Link copied" state. A dismissed sheet (`AbortError`) is not counted as a share. |
-| Card renderer | `app/songs/[slug]/opengraph-image.tsx` | `next/og` (Satori) -> 1200x630 PNG: the square cover at full card height on the left, wordmark / title / rule / description on the right. |
+| Card renderer | `app/songs/[slug]/opengraph-image.tsx` | `next/og` (Satori) -> re-encoded to 1200x630 JPEG: the square cover at full card height on the left, wordmark / title / rule / description on the right. |
 | Fonts | `public/fonts/SpaceGrotesk-{Regular,Bold}.ttf` | Satori needs raw font bytes; `next/font` does not expose them. |
 
 Constraints worth knowing before editing the card:
@@ -235,6 +236,12 @@ Constraints worth knowing before editing the card:
 - **`app/songs/[slug]/page.tsx` must not set `openGraph.images`.** An explicit
   value overrides the `opengraph-image.tsx` file convention and resurfaces the
   raw 1:1 cover, which unfurls centre-cropped.
+- **The card must stay under ~300KB or WhatsApp drops it** and shows a
+  text-only preview. `next/og` can only emit PNG, and a 1200x630 PNG of
+  photographic cover art is 750KB-1MB (vercel/next.js#60366), so the route
+  re-encodes to JPEG with `sharp` before returning — roughly 1MB down to
+  130KB. This is why the route returns a plain `Response` rather than the
+  `ImageResponse` directly, and why `sharp` is a declared dependency.
 - **The cover is never cropped.** It renders at 630x630 — the full height of
   the card — so the whole square is visible. Covers are composed full frame,
   and a full-bleed 1200x630 treatment cuts roughly 47% of the artwork; on
