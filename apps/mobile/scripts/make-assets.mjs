@@ -60,7 +60,15 @@ await sharp(path.join(webPublic, "KaiLogoWhite.png"))
   .png({ compressionLevel: 9 })
   .toFile(path.join(out, "splash-icon.png"));
 
-for (const f of ["icon.png", "adaptive-icon-foreground.png", "splash-icon.png"]) {
+// 4. Library hero — the Kai portrait, which does not work as an icon but is
+//    exactly right at full width. JPEG: it is photographic and gains nothing
+//    from PNG, at roughly a tenth the size.
+await sharp(path.join(webPublic, "BeatsByKaiProfile.jpg"))
+  .resize(1080, 1080, { fit: "cover" })
+  .jpeg({ quality: 82, progressive: true })
+  .toFile(path.join(out, "hero.jpg"));
+
+for (const f of ["icon.png", "adaptive-icon-foreground.png", "splash-icon.png", "hero.jpg"]) {
   const meta = await sharp(path.join(out, f)).metadata();
   const kb = Math.round((await sharp(path.join(out, f)).toBuffer()).length / 1024);
   console.log(

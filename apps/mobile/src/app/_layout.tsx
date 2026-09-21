@@ -9,6 +9,7 @@ import {
   SpaceGrotesk_400Regular,
   SpaceGrotesk_700Bold,
 } from "@expo-google-fonts/space-grotesk";
+import { SongsProvider } from "@/data/SongsProvider";
 import { colors } from "@/theme";
 
 // Hold the splash until the fonts are ready. Without this the first frame
@@ -36,13 +37,15 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: "fade",
-          }}
-        />
+        <SongsProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: "fade",
+            }}
+          />
+        </SongsProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

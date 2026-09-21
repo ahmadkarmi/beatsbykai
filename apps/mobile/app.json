@@ -36,6 +36,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "workerUrl": "https://listentokai-api.listentokai.workers.dev"
     }
   }
 }
