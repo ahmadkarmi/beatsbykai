@@ -225,7 +225,7 @@ rasterised client-side.
 | Piece | File | Notes |
 |---|---|---|
 | Share control | `components/song/ShareButton.tsx` | `navigator.share({ title, url })`, falling back to `navigator.clipboard` with a transient "Link copied" state. A dismissed sheet (`AbortError`) is not counted as a share. |
-| Card renderer | `app/songs/[slug]/opengraph-image.tsx` | `next/og` (Satori) -> 1200x630 PNG: blurred cover backdrop, sharp cover, title, description, wordmark. |
+| Card renderer | `app/songs/[slug]/opengraph-image.tsx` | `next/og` (Satori) -> 1200x630 PNG: the square cover at full card height on the left, wordmark / title / rule / description on the right. |
 | Fonts | `public/fonts/SpaceGrotesk-{Regular,Bold}.ttf` | Satori needs raw font bytes; `next/font` does not expose them. |
 
 Constraints worth knowing before editing the card:
@@ -235,12 +235,17 @@ Constraints worth knowing before editing the card:
 - **`app/songs/[slug]/page.tsx` must not set `openGraph.images`.** An explicit
   value overrides the `opengraph-image.tsx` file convention and resurfaces the
   raw 1:1 cover, which unfurls centre-cropped.
-- **Satori ignores the `inset` shorthand.** Absolute overlays need explicit
+- **The cover is never cropped.** It renders at 630x630 — the full height of
+  the card — so the whole square is visible. Covers are composed full frame,
+  and a full-bleed 1200x630 treatment cuts roughly 47% of the artwork; on
+  `1984` that removes the boy and the bird entirely.
+- **Title size steps down with length** (`titleSize()`). The text panel is only
+  ~446px of usable width, so the longest titles in the catalogue would
+  otherwise wrap into a three-line stack.
+- Because nothing is overlaid on the art, bright and dark covers both work
+  without a scrim to balance. If you ever reintroduce an overlay, note that
+  Satori ignores the `inset` shorthand — absolute overlays need explicit
   `top` / `left` / `width` / `height` or they silently do not paint.
-- **Blur fringing** (vercel/satori#309) is avoided by rendering the backdrop at
-  1800px so its edges fall outside the 1200x630 crop.
-- Bright and dark covers are normalised with `brightness()` inside the filter
-  chain rather than a heavier scrim, so the backdrop stays visible on both.
 - The route is dynamic with `revalidate = 60`. The `/api/revalidate` webhook
   targets the page route, not the image route, so a changed cover reaches the
   card within ~60s rather than instantly.

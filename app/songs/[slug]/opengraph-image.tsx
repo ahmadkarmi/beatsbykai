@@ -13,10 +13,12 @@ export const contentType = "image/png";
 export const size = { width: 1200, height: 630 };
 export const alt = `A song by ${ARTIST_NAME}`;
 
-// Satori blurs in place, which leaves dark fringing at the element's edges.
-// Rendering the backdrop far larger than the frame pushes that fringe outside
-// the 1200x630 crop entirely. See vercel/satori#309.
-const BACKDROP = 1800;
+const AMBER = "#d4820a";
+const INK = "#0a0a0a";
+
+/** Cover is square and fills the full card height, so the art is never cropped. */
+const ART = size.height;
+const PANEL_PAD = 62;
 const DESC_MAX = 115;
 
 function readAsset(relPath: string): Buffer {
@@ -52,6 +54,17 @@ function truncate(text: string, max: number): string {
   return `${text.slice(0, max).trimEnd()}…`;
 }
 
+/**
+ * The text panel is ~446px of usable width, so a fixed size would wrap the
+ * longer titles in the catalogue ("The Village Drew The Line") into an ugly
+ * three-line stack. Step the size down instead.
+ */
+function titleSize(title: string): number {
+  if (title.length > 22) return 48;
+  if (title.length > 15) return 55;
+  return 62;
+}
+
 export default async function SongOgImage({
   params,
 }: {
@@ -76,72 +89,48 @@ export default async function SongOgImage({
           width: "100%",
           height: "100%",
           display: "flex",
-          position: "relative",
-          backgroundColor: "#0a0a0a",
+          backgroundColor: INK,
           fontFamily: "Space Grotesk",
         }}
       >
-        {/* Blurred cover backdrop, oversized so blur fringing falls outside the frame */}
-        <img
-          src={cover}
-          width={BACKDROP}
-          height={BACKDROP}
-          style={{
-            position: "absolute",
-            left: (size.width - BACKDROP) / 2,
-            top: (size.height - BACKDROP) / 2,
-            filter: "blur(70px) saturate(1.7) brightness(0.52)",
-            objectFit: "cover",
-          }}
-        />
+        {/* Cover art — full height, square, uncropped */}
+        <img src={cover} width={ART} height={ART} style={{ objectFit: "cover" }} />
 
-        {/* Scrim — holds contrast for the type regardless of how bright the art is */}
+        {/* Text panel */}
         <div
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: size.width,
-            height: size.height,
-            display: "flex",
-            backgroundImage:
-              "linear-gradient(180deg, rgba(10,10,10,0.52) 0%, rgba(10,10,10,0.74) 46%, rgba(10,10,10,0.93) 100%)",
-          }}
-        />
-
-        {/* Content */}
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            height: "100%",
+            flex: 1,
             display: "flex",
             flexDirection: "column",
-            alignItems: "center",
             justifyContent: "center",
-            padding: "44px 72px 84px",
+            padding: `0 ${PANEL_PAD}px`,
           }}
         >
-          <img
-            src={cover}
-            width={244}
-            height={244}
+          <div
             style={{
-              borderRadius: 14,
-              objectFit: "cover",
-              border: "1px solid rgba(255,255,255,0.10)",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              letterSpacing: "0.34em",
+              color: "rgba(240,240,240,0.45)",
             }}
-          />
+          >
+            <div style={{ display: "flex" }}>{ARTIST_NAME.toUpperCase()}</div>
+            <div style={{ display: "flex", color: AMBER }}>·</div>
+            <div style={{ display: "flex" }}>BEATSBYKAI.COM</div>
+          </div>
 
           <div
             style={{
               display: "flex",
-              fontSize: 56,
+              fontSize: titleSize(title),
               fontWeight: 700,
               color: "#ffffff",
               letterSpacing: "-0.02em",
-              marginTop: 34,
-              textAlign: "center",
+              lineHeight: 1.06,
+              marginTop: 26,
             }}
           >
             {title}
@@ -150,49 +139,25 @@ export default async function SongOgImage({
           <div
             style={{
               display: "flex",
-              width: 76,
+              width: 68,
               height: 4,
               borderRadius: 2,
-              backgroundColor: "#d4820a",
-              marginTop: 20,
+              backgroundColor: AMBER,
+              marginTop: 24,
             }}
           />
 
           <div
             style={{
               display: "flex",
-              fontSize: 27,
-              color: "rgba(240,240,240,0.80)",
-              lineHeight: 1.42,
-              marginTop: 20,
-              maxWidth: 880,
-              textAlign: "center",
+              fontSize: 25,
+              color: "rgba(240,240,240,0.72)",
+              lineHeight: 1.45,
+              marginTop: 24,
             }}
           >
             {description}
           </div>
-        </div>
-
-        {/* Footer wordmark */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 34,
-            left: 0,
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 12,
-            fontSize: 17,
-            fontWeight: 700,
-            letterSpacing: "0.34em",
-            color: "rgba(240,240,240,0.55)",
-          }}
-        >
-          <div style={{ display: "flex" }}>{ARTIST_NAME.toUpperCase()}</div>
-          <div style={{ display: "flex", color: "rgba(212,130,10,0.85)" }}>·</div>
-          <div style={{ display: "flex" }}>BEATSBYKAI.COM</div>
         </div>
       </div>
     ),
