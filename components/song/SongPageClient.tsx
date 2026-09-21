@@ -9,6 +9,7 @@ import { usePlayer } from "@/components/player/PlayerContext";
 import type { RepeatMode } from "@/components/player/PlayerContext";
 import { Song } from "@/lib/types";
 import { trackSongPageView } from "@/lib/analytics";
+import ShareButton from "@/components/song/ShareButton";
 import type { SongLabel } from "@/lib/types";
 
 const LABEL_STYLES: Record<SongLabel, string> = {
@@ -201,7 +202,7 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
                 <span className="text-[9px] font-bold uppercase tracking-[0.35em] text-white/40">
                   Now Playing
                 </span>
-                <div className="w-11" aria-hidden="true" />
+                <ShareButton title={song.title} slug={song.slug} />
               </div>
             </div>
 

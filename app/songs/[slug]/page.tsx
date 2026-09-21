@@ -22,8 +22,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = song.title;
   const description = song.description || ARTIST_DESCRIPTION;
-  const images = song.coverArtUrl ? [{ url: song.coverArtUrl, width: 600, height: 600, alt: song.title }] : [];
 
+  // Images are intentionally omitted: the sibling opengraph-image.tsx supplies a
+  // 1200x630 card. Setting `images` here would override that file convention and
+  // resurface the raw 1:1 cover, which unfurls center-cropped.
   return {
     title,
     description,
@@ -32,13 +34,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: "music.song",
-      images,
     },
     twitter: {
-      card: song.coverArtUrl ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: song.coverArtUrl ? [song.coverArtUrl] : [],
     },
   };
 }

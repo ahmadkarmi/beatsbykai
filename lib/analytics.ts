@@ -98,3 +98,11 @@ export function trackSectionToggled(
 ) {
   track("section_toggled", { section, action, song_title: title, song_slug: slug });
 }
+
+export function trackSongShared(
+  title: string,
+  slug: string,
+  method: "native" | "clipboard"
+) {
+  track("song_shared", { song_title: title, song_slug: slug, method });
+}
