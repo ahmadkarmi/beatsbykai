@@ -4,6 +4,7 @@ import { getSongBySlug, getPublishedSongs } from "@/lib/data/songs";
 import SongPageClient from "@/components/song/SongPageClient";
 import { SITE_URL, ARTIST_NAME, ARTIST_DESCRIPTION, SAME_AS } from "@/lib/site";
 import { jsonLd as jsonLdScript } from "@/lib/jsonld";
+import { toIsoDate } from "@/lib/dates";
 
 export const revalidate = 60;
 
@@ -62,7 +63,11 @@ export default async function SongPage({ params }: Props) {
         name: song.title,
         description: song.description || undefined,
         genre: "Hip-Hop",
-        ...(song.createdAt && { datePublished: song.createdAt }),
+        ...(toIsoDate(song.createdAt) && { datePublished: toIsoDate(song.createdAt) }),
+        inLanguage: "en",
+        ...(song.lyrics && {
+          lyrics: { "@type": "CreativeWork", text: song.lyrics },
+        }),
         byArtist: {
           "@type": "MusicGroup",
           name: ARTIST_NAME,

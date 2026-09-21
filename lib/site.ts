@@ -10,14 +10,13 @@ export const ARTIST_DESCRIPTION =
 // Public streaming/social profiles for Kai. These power schema.org `sameAs`,
 // which feeds Google's entity recognition / knowledge panel — the highest-impact
 // SERP signal for an artist.
-// TODO: replace with real profile URLs as each goes live (Spotify, Apple Music,
-// YouTube, Instagram, TikTok). Leave commented until live — empty is better than fake.
+// Kai is deliberately website-only — not distributed to Spotify, Apple Music,
+// YouTube or TikTok. That is a product decision, not an omission, but it does
+// mean `sameAs` carries very little entity signal and beatsbykai.com has to
+// earn all of its discovery through its own pages. Add real profile URLs here
+// if that ever changes; never add a profile that does not exist.
 export const SOCIAL_LINKS: string[] = [
   "https://www.instagram.com/beatsbykaikw",
-  // "https://open.spotify.com/artist/...",
-  // "https://music.apple.com/us/artist/...",
-  // "https://www.youtube.com/@...",
-  // "https://www.tiktok.com/@...",
 ];
 
 // Everything that represents Kai across the web: own site + external profiles.

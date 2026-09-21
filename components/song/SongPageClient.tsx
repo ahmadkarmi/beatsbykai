@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { usePlayer } from "@/components/player/PlayerContext";
 import { Song } from "@/lib/types";
 import { trackSongPageView, trackSectionToggled } from "@/lib/analytics";
+import { tagSlug } from "@/lib/tags";
 import ShareButton from "@/components/song/ShareButton";
 import LyricsSheet, {
   SectionBody,
@@ -274,9 +275,15 @@ export default function SongPageClient({ song, allSongs }: { song: Song; allSong
                 ))}
               </div>
               {song.tags?.length > 0 && (
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   {song.tags.map((tag) => (
-                    <span key={tag} className="text-[11px] text-white/30 font-medium">{tag}</span>
+                    <Link
+                      key={tag}
+                      href={`/tags/${tagSlug(tag)}`}
+                      className="text-[11px] font-medium text-white/45 hover:text-accent border border-white/[0.08] hover:border-accent/40 rounded-full px-2 py-0.5 transition-colors"
+                    >
+                      {tag}
+                    </Link>
                   ))}
                 </div>
               )}

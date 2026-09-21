@@ -54,6 +54,7 @@ Public
   /                                   Library (home) — ISR, revalidate 60
   /about                              About Kai — static
   /songs/[slug]                       Song page — ISR 60, generateStaticParams
+  /tags/[tag]                         Songs by theme — ISR 60; see Findability
 
 Admin — gated by proxy.ts, noindex
   /controlpanel                       Dashboard (stats + reorder), dynamic
@@ -256,6 +257,52 @@ Constraints worth knowing before editing the card:
 - The route is dynamic with `revalidate = 60`. The `/api/revalidate` webhook
   targets the page route, not the image route, so a changed cover reaches the
   card within ~60s rather than instantly.
+
+## Findability
+
+Kai is **deliberately website-only** — not on Spotify, Apple Music, YouTube or
+TikTok. That is a product decision, but it means `sameAs` carries almost no
+entity signal and the site has to earn all of its discovery through its own
+pages. SEO here is not a nice-to-have.
+
+**Structured data.** `MusicGroup` / `Organization` / `WebSite` on the home
+page; `MusicRecording` + `BreadcrumbList` per song, including full `lyrics`
+and `inLanguage`; `CollectionPage` + `ItemList` per tag. All serialised
+through `lib/jsonld.ts`.
+
+**Dates.** The Worker returns `createdAt` as `"2026-04-12 15:20:08"`, which is
+not ISO 8601 and which `new Date()` parses in an implementation-defined way.
+`lib/dates.ts` normalises it (as UTC) before it reaches `datePublished` or the
+sitemap.
+
+**Tag pages** turn otherwise-dead metadata into browsable, indexable surfaces
+and give a listener a reason to play a second song. Policy in `lib/tags.ts`:
+
+- Every tag is clickable and every tag page renders.
+- Only tags with **2 or more songs** are indexed and listed in the sitemap.
+  A one-song tag page is a near-duplicate of the song page — thin content —
+  so it is served `noindex, follow`.
+- The "other themes" footer nav shows only indexable tags, capped at 12.
+
+**Measurement.** GA4 (`NEXT_PUBLIC_GA_ID`) covers on-site behaviour and
+acquisition source. It cannot show search impressions, queries or position —
+that needs Google Search Console, wired via `GOOGLE_SITE_VERIFICATION`.
+
+### Known issue: soft 404s on dynamic params
+
+An unknown dynamic param returns **200 with the not-found body** rather than a
+404 — e.g. `/songs/does-not-exist`. A genuinely unknown route (`/made-up`)
+404s correctly. Cause: `notFound()` inside a route with
+`generateStaticParams` + `revalidate` is prerendered and served from cache
+with a 200 (`X-Nextjs-Prerender: 1`).
+
+Low exposure today: nothing links to invalid URLs and the sitemap is clean.
+It matters when a song is **deleted or renamed** — the old URL then 200s
+forever and stays indexed.
+
+`export const dynamicParams = false` would fix it, but breaks publishing: a
+song added through the control panel would 404 until the next deploy, because
+the param list is fixed at build time. Needs a better answer before changing.
 
 ## Security
 
