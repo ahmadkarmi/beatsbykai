@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const R2_HOST = "https://pub-56eee1e388224dd293f25bccc68afdca.r2.dev";
 
+// The control panel uploads audio and cover art straight from the browser to
+// the Worker, so its origin must be in connect-src or the XHR is blocked and
+// surfaces as "Network error during upload". Read from env so it follows the
+// deployment, with the production host as a fallback for local builds.
+const WORKER_HOST =
+  process.env.NEXT_PUBLIC_WORKER_URL ??
+  "https://listentokai-api.listentokai.workers.dev";
+
 // Content Security Policy.
 //
 // `script-src` keeps 'unsafe-inline' because Next.js emits inline hydration
@@ -19,6 +27,7 @@ const csp = [
   [
     "connect-src 'self'",
     R2_HOST,
+    WORKER_HOST,
     "https://www.google-analytics.com",
     "https://*.google-analytics.com",
     "https://*.analytics.google.com",
